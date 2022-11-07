@@ -17,8 +17,9 @@
           cargo = toolchain;
           rustc = toolchain;
         };
-        buildInputs = old: old ++ [pkgs.xorg.libX11 pkgs.xorg.libX11.dev];
+        "^.*".add-pre-build-steps.buildInputs = old: old ++ (with pkgs.xorg;[libX11 libXcursor libXrandr libXi]);
         LD_LIBRARY_PATH = "/home/joao/.config/nixpkgs";
       };
+      settings = [  {devShells.env = [{name = "TESTING_VAR"; value = "/home/"; }];} ];
     };
 }
