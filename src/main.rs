@@ -1,29 +1,30 @@
 use iced::{executor, Application, Command, Element, Settings, Text};
 
 pub fn main() -> iced::Result {
-    Hello::run(Settings::default())
+    Dashboard::run(Settings::default())
 }
 
-struct Hello;
+struct Dashboard;
 
-impl Application for Hello {
+impl Application for Dashboard {
     type Executor = executor::Default;
     type Message = ();
     type Flags = ();
 
-    fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
-        (Hello, Command::none())
+    fn new(_flags: ()) -> (Dashboard, Command<Self::Message>) {
+        (Dashboard, Command::none())
     }
-
     fn title(&self) -> String {
-        String::from("A cool application")
+        String::from("System Dashboard")
     }
 
     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
-        Command::none()
+        match message {
+            Message::
+        }
     }
 
     fn view(&mut self) -> Element<Self::Message> {
-        Text::new("Hello, world!").into()
+        Column
     }
 }

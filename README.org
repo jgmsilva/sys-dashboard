@@ -1,0 +1,17 @@
+#+title: System Dashboard
+* PROJ Dashboard do sistema escrito em Rust
+DEADLINE: <2022-12-12 Mon>
+Projeto de Sistemas Operacionais, onde deve ser feito um dashboard com base nas informaćões do sistema, com os seguintes tópicos
+** TODO Sistema (hardware e SO)
++ [ ] kernel linux da distribuicão
++ [ ] nome da distribuicão
++ [ ] detalhe da cpu
++ [ ] quantidade de RAM
+<2022-11-23 Wed>
+** TODO Processos/Threads
++ [ ] lista de processos
+  +
+  + [ ] PID do processo
+** TODO Sistema de Arquivo
+** TODO Memória
+** TODO Terminal
