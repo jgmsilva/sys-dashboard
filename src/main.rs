@@ -1,9 +1,14 @@
-use iced::Container;
+use iced::text_input::{self, TextInput};
+use iced::{
+    button, executor, Application, Button, Column, Command, Container, Element, Row, Settings, Text,
+};
+use panel::*;
+use shell::*;
+use std::env;
 ///use iced::widget::{button, column, row};
-use iced::{button, executor, Application, Button, Column, Command, Element, Row, Settings, Text};
-use std::fmt;
-use std::process::Command as Com;
-use std::process::Stdio;
+use std::process::Command as Comm;
+mod panel;
+mod shell;
 ///use strum::IntoEnumIterator; // 0.17.1
 ///use strum_macros::EnumIter; // 0.17.1
 
@@ -17,33 +22,17 @@ struct Dashboard {
     button_fil: button::State,
     button_mem: button::State,
     button_term: button::State,
-    status: String,
+    status: Panel,
+    shell: Shell,
+    input: text_input::State,
+    input_value: String,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum Panel {
-    System,
-    Process,
-    Files,
-    Memory,
-    Terminal,
-}
-
-impl fmt::Display for Panel {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Panel::System => write!(f, "System"),
-            Panel::Process => write!(f, "Process"),
-            Panel::Files => write!(f, "Files"),
-            Panel::Memory => write!(f, "Memory"),
-            Panel::Terminal => write!(f, "Terminal"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     Show(Panel),
+    InputChanged(String),
+    CreateTask,
 }
 impl Application for Dashboard {
     type Executor = executor::Default;
@@ -58,7 +47,10 @@ impl Application for Dashboard {
                 button_fil: button::State::new(),
                 button_mem: button::State::new(),
                 button_term: button::State::new(),
-                status: Panel::System.to_string(),
+                status: Panel::System,
+                shell: Shell::new(),
+                input: text_input::State::new(),
+                input_value: String::new(),
             },
             Command::none(),
         )
@@ -71,32 +63,12 @@ impl Application for Dashboard {
     //
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::Show(panel) => match panel {
-                Panel::System => {
-                    self.status = String::from_utf8_lossy(
-                        &Com::new("uname").arg("-a").output().expect("fail").stdout,
-                    )
-                    .to_string();
-                }
-                Panel::Process => {
-                    let cmd = Com::new("ps").arg("aux").output().expect("fail").stdout;
-                    self.status = String::from_utf8_lossy(&cmd).to_string();
-                }
-                Panel::Files => {
-                    self.status = Panel::Files.to_string();
-                }
-                Panel::Memory => {
-                    self.status = String::from_utf8_lossy(
-                        &Com::new("cat")
-                            .arg("/proc/meminfo")
-                            .output()
-                            .expect("fail")
-                            .stdout,
-                    )
-                    .to_string();
-                }
-                Panel::Terminal => {}
-            },
+            Message::Show(panel) => self.status = panel,
+            Message::InputChanged(strig) => self.input_value = strig,
+            Message::CreateTask => {
+                self.shell.exec(&self.input_value);
+                self.input_value = String::new();
+            }
         };
         Command::none()
     }
@@ -135,7 +107,30 @@ impl Application for Dashboard {
                         .on_press(Message::Show(Panel::Terminal)),
                     ),
             )
-            .push(Text::new(&self.status))
+            .push(match self.status {
+                Panel::System => Container::new(Text::new("system")),
+                Panel::Memory => Container::new(Text::new("memory")),
+                Panel::Files => Container::new(Text::new(
+                    std::str::from_utf8(&Comm::new("ls").output().unwrap().stdout).unwrap(),
+                )),
+                Panel::Process => Container::new(Text::new("process")),
+                Panel::Terminal => Container::new(
+                    Column::new().push(Text::new(self.shell.print())).push(
+                        Column::new()
+                            .push(Text::new(self.shell.current_dir()))
+                            .push(
+                                TextInput::new(
+                                    &mut self.input,
+                                    "What needs to be done?",
+                                    &mut self.input_value,
+                                    Message::InputChanged,
+                                )
+                                .padding(15)
+                                .on_submit(Message::CreateTask),
+                            ),
+                    ),
+                ),
+            })
             .into()
     }
 }
