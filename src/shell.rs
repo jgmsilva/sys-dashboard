@@ -41,7 +41,6 @@ impl Shell {
                         self.dir.pop();
                     } else {
                         let root = Path::new(curr_dir);
-                        println!("{}", root.to_str().unwrap());
                         self.dir.push(root);
                     }
                     previous_command = None;
@@ -53,15 +52,7 @@ impl Shell {
                         Stdio::from(output.stdout.unwrap())
                     });
 
-                    let stdout = if commands.peek().is_some() {
-                        // there is another command piped behind this one
-                        // prepare to send output to the next command
-                        Stdio::piped()
-                    } else {
-                        // there are no more commands piped behind this one
-                        // send output to shell stdout
-                        Stdio::piped()
-                    };
+                    let stdout = Stdio::piped();
 
                     let output = Command::new(command)
                         .args(args)
