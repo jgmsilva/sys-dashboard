@@ -1,7 +1,7 @@
 use iced::text_input::{self, TextInput};
 use iced::{
     button, executor, scrollable, Application, Button, Column, Command, Container, Element, Length,
-    Row, Scrollable, Settings, Text,
+    ProgressBar, Row, Scrollable, Settings, Text,
 };
 use panel::*;
 use process::process_container;
@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 ///use iced::widget::{button, column, row};
 use std::process::Command as Comm;
 mod files;
+mod memory;
 mod panel;
 mod process;
 mod shell;
@@ -23,7 +24,7 @@ pub fn main() -> iced::Result {
 }
 
 struct Dashboard {
-    buttons: Vec<button::State>,
+    buttons: Vec<(String, button::State)>,
     button_sys: button::State,
     button_proc: button::State,
     button_fil: button::State,
@@ -55,7 +56,7 @@ impl Application for Dashboard {
         }
         (
             Dashboard {
-                buttons: Vec::<button::State>::new(),
+                buttons: Vec::<(String, button::State)>::new(),
                 button_sys: button::State::new(),
                 button_proc: button::State::new(),
                 button_fil: button::State::new(),
@@ -79,7 +80,15 @@ impl Application for Dashboard {
     //
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::Show(panel) => self.status = panel,
+            Message::Show(panel) => match panel {
+                Panel::Files => {
+                    self.update(Message::ChangeDir(
+                        self.file_dir.to_string_lossy().into_owned(),
+                    ));
+                    self.status = panel;
+                }
+                panel => self.status = panel,
+            },
             Message::InputChanged(strig) => self.input_value = strig,
             Message::ExecuteCommand => {
                 self.shell.exec(&self.input_value);
@@ -87,11 +96,15 @@ impl Application for Dashboard {
                 self.scroll.snap_to(1.0);
             }
             Message::ChangeDir(path) => {
+                self.buttons.clear();
                 if path == ".." {
                     self.file_dir.pop();
                 } else {
                     let root = Path::new(&path);
                     self.file_dir.push(root);
+                }
+                for line in files::make_dirs(self.file_dir.as_path()) {
+                    self.buttons.push((line.clone(), button::State::new()))
                 }
             }
         };
@@ -105,32 +118,40 @@ impl Application for Dashboard {
                     .on_press(Message::Show(pan)),
             );
         }*/
+        let (used, total) = memory::get_mem();
         Column::new()
             .push(
                 Row::new()
                     .push(
                         Button::new(&mut self.button_sys, Text::new(Panel::System.to_string()))
-                            .on_press(Message::Show(Panel::System)),
+                            .on_press(Message::Show(Panel::System))
+                            .width(Length::Units(150)),
                     )
                     .push(
                         Button::new(&mut self.button_proc, Text::new(Panel::Process.to_string()))
-                            .on_press(Message::Show(Panel::Process)),
+                            .on_press(Message::Show(Panel::Process))
+                            .width(Length::Units(150)),
                     )
                     .push(
                         Button::new(&mut self.button_fil, Text::new(Panel::Files.to_string()))
-                            .on_press(Message::Show(Panel::Files)),
+                            .on_press(Message::Show(Panel::Files))
+                            .width(Length::Units(150)),
                     )
                     .push(
                         Button::new(&mut self.button_mem, Text::new(Panel::Memory.to_string()))
-                            .on_press(Message::Show(Panel::Memory)),
+                            .on_press(Message::Show(Panel::Memory))
+                            .width(Length::Units(150)),
                     )
                     .push(
                         Button::new(
                             &mut self.button_term,
                             Text::new(Panel::Terminal.to_string()),
                         )
-                        .on_press(Message::Show(Panel::Terminal)),
-                    ),
+                        .on_press(Message::Show(Panel::Terminal))
+                        .width(Length::Units(150)),
+                    )
+                    .spacing(15)
+                    .width(Length::Fill),
             )
             .push(match self.status {
                 Panel::System => Container::new(
@@ -138,8 +159,25 @@ impl Application for Dashboard {
                         .push(Text::new(format!("Kernel {}", system::get_kernel())))
                         .push(Text::new(format!("Cpu {}", system::get_cpu()))),
                 ),
-                Panel::Memory => Container::new(Text::new("memory")),
-                Panel::Files => Container::new(files::make_dirs(self.file_dir.as_path())),
+                Panel::Memory => Container::new(
+                    Column::new()
+                        .push(Text::new("Memory Used:"))
+                        .push(ProgressBar::new(0.0..=total, used)),
+                ),
+                Panel::Files => Container::new(
+                    Scrollable::new(&mut self.scroll)
+                        .push(self.buttons.iter_mut().enumerate().fold(
+                            Column::new(),
+                            |column, (i, (line, state))| {
+                                column.push(
+                                    Button::new(state, Text::new(line.as_str()))
+                                        .on_press(Message::ChangeDir(line.clone()))
+                                        .width(Length::Units(200)),
+                                )
+                            },
+                        ))
+                        .width(Length::Fill),
+                ),
                 Panel::Process => Container::new(process_container()),
                 Panel::Terminal => Container::new(
                     Column::new()

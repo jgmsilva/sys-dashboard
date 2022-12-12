@@ -3,7 +3,7 @@ use std::{path::Path, process::Command};
 
 use crate::Message;
 
-pub fn make_dirs(path: &Path) -> std::str::Lines {
+pub fn make_dirs(path: &Path) -> Vec<String> {
     let dirs = String::from_utf8(
         Command::new("ls")
             .current_dir(path)
@@ -14,9 +14,9 @@ pub fn make_dirs(path: &Path) -> std::str::Lines {
     )
     .unwrap();
     let lines = dirs.lines();
-
-    for dir in lines {
-        println!("{}", dir);
+    let vec: Vec<String> = lines.map(|line| line.to_string()).collect();
+    for v in vec.iter() {
+        println!("{}", v)
     }
-    return lines;
+    return vec;
 }
