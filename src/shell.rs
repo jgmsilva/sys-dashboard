@@ -10,7 +10,7 @@ pub struct Shell {
 impl Shell {
     pub fn new() -> Self {
         Shell {
-            log: "testing log".to_string(),
+            log: "".to_string(),
             dir: PathBuf::from(env::var("HOME").unwrap()),
         }
     }

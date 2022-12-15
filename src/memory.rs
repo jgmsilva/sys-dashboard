@@ -1,6 +1,6 @@
 use std::process::Command;
 use std::process::Stdio;
-pub fn get_mem() -> (f32, f32) {
+pub fn get_mem() -> (i32, i32) {
     let cmd1 = Command::new("free").stdout(Stdio::piped()).spawn().unwrap();
     let cmd2 = Command::new("free").stdout(Stdio::piped()).spawn().unwrap();
     let mem1 = Command::new("grep")
@@ -35,7 +35,7 @@ pub fn get_mem() -> (f32, f32) {
     .unwrap();
 
     return (
-        memUsed.parse::<f32>().unwrap(),
-        memTotal.parse::<f32>().unwrap(),
+        memUsed.trim().parse::<i32>().unwrap(),
+        memTotal.trim().parse::<i32>().unwrap(),
     );
 }

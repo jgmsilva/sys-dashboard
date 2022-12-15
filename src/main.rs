@@ -162,7 +162,13 @@ impl Application for Dashboard {
                 Panel::Memory => Container::new(
                     Column::new()
                         .push(Text::new("Memory Used:"))
-                        .push(ProgressBar::new(0.0..=total, used)),
+                        /**/
+                        .push(ProgressBar::new(0.0..=total as f32, used as f32))
+                        .push(Text::new(format!(
+                            "Used: {} Gib Total: {} Gib",
+                            (used as f32 / (1024.0 * 1024.0)),
+                            (total as f32 / (1024.0 * 1024.0))
+                        ))),
                 ),
                 Panel::Files => Container::new(
                     Scrollable::new(&mut self.scroll)
@@ -202,6 +208,7 @@ impl Application for Dashboard {
                                         &mut self.input_value,
                                         Message::InputChanged,
                                     )
+                                    .padding(15)
                                     .on_submit(Message::ExecuteCommand),
                                 ),
                         ),
