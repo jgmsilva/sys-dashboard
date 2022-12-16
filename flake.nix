@@ -22,7 +22,7 @@
         "^.*".add-pre-build-steps = {
           #nativeBuildInputs = old: old ++ (with pkgs; [cmake gnumake]);
           buildInputs = old: old ++ (with pkgs.xorg;[libX11 libXcursor libXrandr libXi libXaw libXft libXmu libXrender libXt libxkbfile ])
-                                                     ++ [GLAdapter pkgs.rust-analyzer ];
+                                                     ++ [GLAdapter pkgs.rust-analyzer pkgs.fontconfig];
         };
         LD_LIBRARY_PATH = "/home/joao/.config/nixpkgs";
       };

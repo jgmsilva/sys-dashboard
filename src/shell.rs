@@ -16,7 +16,6 @@ impl Shell {
     }
 
     pub fn print(&self) -> &str {
-        println!("{}", self.log);
         &self.log
     }
 
@@ -35,8 +34,8 @@ impl Shell {
 
             match command {
                 "cd" => {
-                    // default to '/' as new directory if one was not provided
-                    let curr_dir = args.peekable().peek().map_or("/home/joao", |x| *x);
+                    let home = env::var("HOME").unwrap();
+                    let curr_dir = args.peekable().peek().map_or(home.as_str(), |x| *x);
                     if curr_dir == ".." {
                         self.dir.pop();
                     } else {
@@ -75,12 +74,10 @@ impl Shell {
         }
         let out;
         if let Some(final_command) = previous_command {
-            // block until the final command has finished
             out = String::from_utf8(final_command.wait_with_output().unwrap().stdout).unwrap();
         } else {
             out = String::from("");
         }
-        println!("out: {}", out);
         self.log += &out;
     }
 }

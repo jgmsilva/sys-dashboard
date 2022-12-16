@@ -1,15 +1,16 @@
 use iced::text_input::{self, TextInput};
 use iced::{
     button, executor, scrollable, Application, Button, Column, Command, Container, Element, Length,
-    ProgressBar, Row, Scrollable, Settings, Text,
+    ProgressBar, Row, Scrollable, Settings, Subscription, Text,
 };
+use memory::SystemChart;
 use panel::*;
 use process::process_container;
 use shell::*;
 use std::env;
 use std::path::{Path, PathBuf};
 ///use iced::widget::{button, column, row};
-use std::process::Command as Comm;
+use std::time::Duration;
 mod files;
 mod memory;
 mod panel;
@@ -36,6 +37,7 @@ struct Dashboard {
     input: text_input::State,
     input_value: String,
     file_dir: PathBuf,
+    system: SystemChart,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +46,7 @@ pub enum Message {
     InputChanged(String),
     ExecuteCommand,
     ChangeDir(String),
+    Tick,
 }
 impl Application for Dashboard {
     type Executor = executor::Default;
@@ -67,7 +70,8 @@ impl Application for Dashboard {
                 scroll: scrollable::State::new(),
                 input: text_input::State::new(),
                 input_value: String::new(),
-                file_dir: PathBuf::from("/home/joao"),
+                file_dir: PathBuf::from(env::var("HOME").unwrap()),
+                system: Default::default(),
             },
             Command::none(),
         )
@@ -107,10 +111,14 @@ impl Application for Dashboard {
                     self.buttons.push((line.clone(), button::State::new()))
                 }
             }
+            Message::Tick => self.system.update(),
         };
         Command::none()
     }
-
+    fn subscription(&self) -> Subscription<Self::Message> {
+        const FPS: u64 = 50;
+        iced::time::every(Duration::from_millis(1000 / FPS)).map(|_| Message::Tick)
+    }
     fn view(&mut self) -> Element<Self::Message> {
         /*for pan in Panel::iter() {
             row.push(
@@ -119,6 +127,7 @@ impl Application for Dashboard {
             );
         }*/
         let (used, total) = memory::get_mem();
+        let (disk_total, disk_used, diskp) = files::get_disk_space();
         Column::new()
             .push(
                 Row::new()
@@ -157,7 +166,8 @@ impl Application for Dashboard {
                 Panel::System => Container::new(
                     Column::new()
                         .push(Text::new(format!("Kernel {}", system::get_kernel())))
-                        .push(Text::new(format!("Cpu {}", system::get_cpu()))),
+                        .push(Text::new(format!("Cpu {}", system::get_cpu())))
+                        .push(self.system.view()),
                 ),
                 Panel::Memory => Container::new(
                     Column::new()
@@ -171,18 +181,26 @@ impl Application for Dashboard {
                         ))),
                 ),
                 Panel::Files => Container::new(
-                    Scrollable::new(&mut self.scroll)
-                        .push(self.buttons.iter_mut().enumerate().fold(
-                            Column::new(),
-                            |column, (i, (line, state))| {
-                                column.push(
-                                    Button::new(state, Text::new(line.as_str()))
-                                        .on_press(Message::ChangeDir(line.clone()))
-                                        .width(Length::Units(200)),
-                                )
-                            },
-                        ))
-                        .width(Length::Fill),
+                    Column::new()
+                        .push(Text::new(format!(
+                            "Disk Space Used: {} Gib of {} Gib",
+                            disk_used, disk_total,
+                        )))
+                        .push(ProgressBar::new(0.0..=100.0, diskp as f32))
+                        .push(
+                            Scrollable::new(&mut self.scroll)
+                                .push(self.buttons.iter_mut().enumerate().fold(
+                                    Column::new(),
+                                    |column, (i, (line, state))| {
+                                        column.push(
+                                            Button::new(state, Text::new(line.as_str()))
+                                                .on_press(Message::ChangeDir(line.clone()))
+                                                .width(Length::Units(200)),
+                                        )
+                                    },
+                                ))
+                                .width(Length::Fill),
+                        ),
                 ),
                 Panel::Process => Container::new(process_container()),
                 Panel::Terminal => Container::new(
